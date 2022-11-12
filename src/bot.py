@@ -53,7 +53,7 @@ class Bot(object):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
         }
         self.data = [
-            ["username", "contact_link", "fans", "brief", "tt_link"]
+            ["username", "fans", "contact_link", "brief", "tt_link"]
         ]
         self.nameList = []
 
@@ -227,7 +227,7 @@ class Bot(object):
         print("get userinfo task finish, save into excel")
 
     def __fetch_info(self):
-        for username in self.nameList:
+        for username in self.curUserMap:
             ttUserLink = f'https://www.tiktok.com/@{username}?lang=en'
             desc = ""
             contactLink = ""
@@ -286,11 +286,18 @@ class Bot(object):
             exit(0)
 
     def __get_name_list(self):
-        usernamesEles = self.driver.find_elements_by_xpath(self.selectors["username"])
-        while len(usernamesEles) < self.fetchNums:
+        preIndex = 0
+        curIndex = 0
+        while len(self.curUserMap) < self.fetchNums:
+            usernamesEles = self.driver.find_elements_by_xpath(self.selectors["username"])
+            curIndex = len(usernamesEles)
+            for i, usernamesEle in enumerate(usernamesEles, start=preIndex):
+                name = usernamesEle.text
+                if name not in self.curUserMap:
+                    self.curUserMap[name] = 1
+                    if len(self.curUserMap) >= self.fetchNums:
+                        return
+
+            preIndex = curIndex
             self.__scrolldown__()
             self.__random_sleep__(5, 10)
-            usernamesEles = self.driver.find_elements_by_xpath(self.selectors["username"])
-
-        for usernamesEle in usernamesEles:
-            self.nameList.append(usernamesEle.text)
