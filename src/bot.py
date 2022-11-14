@@ -25,6 +25,7 @@ class Bot(object):
         f = open('infos/config.json', )
         botConfig = json.load(f)
 
+        self.minFans = botConfig["min_fans_num"]
         self.fetchTopic = botConfig["topic"]
         self.fetchNums = botConfig["fetch_nums"]
         self.fetchInterval = botConfig["fetch_interval"]
@@ -239,16 +240,21 @@ class Bot(object):
             self.driver.switch_to.window(handles[len(handles) - 1])
             self.__random_sleep__(5, 10)
             try:
+                fansNode = self.__get_element__(self.selectors["fans"], "xpath")
+                if fansNode is not None:
+                    fans = self.transformNum(fansNode.text)
+                    if fans < self.minFans:
+                        print(f'-------fans num not match|fans: {fans}|username: {username}---------')
+                        self.driver.close()
+                        self.driver.switch_to.window(handles[0])
+                        self.__random_sleep__(self.fetchInterval, self.fetchInterval)
+                        continue
                 userBio = self.__get_element__(self.selectors["user_bio"], "xpath")
                 if userBio is not None:
                     desc = userBio.text
                 contactNode = self.__get_element__(self.selectors["contact_link"], "xpath")
                 if contactNode is not None:
                     contactLink = contactNode.text
-
-                fansNode = self.__get_element__(self.selectors["fans"], "xpath")
-                if fansNode is not None:
-                    fans = fansNode.text
 
                 self.data.append(
                     [username, fans, contactLink, desc, ttUserLink])
@@ -288,6 +294,7 @@ class Bot(object):
     def __get_name_list(self):
         preIndex = 0
         curIndex = 0
+        dupTimes = 0
         while len(self.curUserMap) < self.fetchNums:
             usernamesEles = self.driver.find_elements_by_xpath(self.selectors["username"])
             curIndex = len(usernamesEles)
@@ -298,6 +305,27 @@ class Bot(object):
                     if len(self.curUserMap) >= self.fetchNums:
                         return
 
+            if preIndex == curIndex:
+                dupTimes += 1
+                if dupTimes == 2:
+                    return
             preIndex = curIndex
             self.__scrolldown__()
             self.__random_sleep__(5, 10)
+
+    def transformNum(self, numStr):
+        try:
+            num = re.search(r'[.\d]+', numStr)
+            unit = re.search(r'[a-zA-Z]', numStr)
+            if unit is not None:
+                if unit.group().lower() == 'k':
+                    return float(num.group()) * 1000
+                elif unit.group().lower() == 'm':
+                    return float(num.group()) * 1000000
+                elif unit.group().lower() == 'b':
+                    return float(num.group()) * 1000000000
+            else:
+                return int(num.group())
+
+        except Exception as e:
+            print(str(e))

@@ -1,5 +1,6 @@
 {
-  "topic": "stemtoys",
-  "fetch_nums": 250,
-  "fetch_interval": 5
+  "topic": "kidsmath",
+  "fetch_nums": 500,
+  "fetch_interval": 5,
+  "min_fans_num": 800
 }
